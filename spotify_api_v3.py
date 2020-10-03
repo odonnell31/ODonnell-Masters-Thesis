@@ -4,7 +4,7 @@ Created on Thu Sep 10 21:34:23 2020
 
 @author: ODsLaptop
 
-@title: spotify API for sports podcasts' data
+@title: spotify API for podcast and music data
 """
 
 #import needeed libraries
@@ -20,7 +20,7 @@ import json
 client_id = '12e3a84c48794da1b01d8c83894b9b22'
 client_secret = 'a83d66bf68004a038c4d83eb110e547d'
 
-
+### Connecting to Spotify ###
 # create SpotifyAPI class
 class SpotifyAPI(object):
     access_token = None
@@ -114,20 +114,12 @@ class SpotifyAPI(object):
         if r.status_code not in range(200,299):
             return {}
         return r.json()
-            
-    def get_album(self, _id):
-        return self.get_resource(_id, resource_type='albums')
     
-    def get_artist(self, _id):
-        return self.get_resource(_id, resource_type='artists')
     
-    def get_episodes(self, _id):
-        return self.get_resource(_id, resource_type='shows')
     
-    #def get_show(self, _id):
-    #    return self.get_resource(_id, resource_type='shows')
-    
-    def search(self, query, search_type = 'artists', market = 'US'): #type is built-in python operator
+    ### Searching Spotify ###
+    # search Spotify by name
+    def search(self, query, search_type = 'artists', market = 'US'):
         headers = self.get_resource_header()
         endpoint = "https://api.spotify.com/v1/search"
         data = urlencode({'q': query, 'type': search_type.lower(), 'market': market})
@@ -138,7 +130,28 @@ class SpotifyAPI(object):
             return "somethings wrong"
         return r.json()
     
-    def get_podcast_info_by_id(self, showid, market = 'US'): #type is built-in python operator
+    
+    
+    ### Retrieving Music Data ###
+    # get album information
+    def get_album(self, _id):
+        return self.get_resource(_id, resource_type='albums')
+    
+    # get artist information
+    def get_artist(self, _id):
+        return self.get_resource(_id, resource_type='artists')
+    
+    
+    
+    ### Retrieving Podcast Data ###
+    # get episodes information
+    #def get_episodes(self, _id):
+    #    return self.get_resource(_id, resource_type='shows')
+    
+    # get the following columns about a podcast:
+        #name, publisher, total_episodes, id, media_type,
+        #description, external_urls, uri
+    def get_podcast_info_by_id(self, showid, market = 'US'):
         headers = self.get_resource_header()
         endpoint = "https://api.spotify.com/v1/shows"
         data = urlencode({'ids': showid, "market": market})
@@ -161,8 +174,29 @@ class SpotifyAPI(object):
         
         return podcast_dict
     
+    # get multiple podcasts info in a dataframe
+    def multiple_podcasts_info(self, list_of_ids):
+        # create empty dataframe
+        podcasts_info_df = pd.DataFrame(columns = ['name', 'publisher','total_episodes',
+                                                     'id','media_type', 'description',
+                                                     'external_urls', 'uri'])
+        
+        # grab podcast info from each id and append to dataframe
+        for i in list_of_ids:
+            temp_dict = self.get_podcast_info_by_id(i)
+            df = pd.DataFrame(temp_dict, columns = ['name', 'publisher',
+                                                  'total_episodes', 'id',
+                                                  'media_type', 'description',
+                                                  'external_urls', 'uri'])
+            #print(df)
+            podcasts_info_df = podcasts_info_df.append(df)
+            
+        podcasts_info_df = podcasts_info_df.reset_index(drop=True)
+        
+        return podcasts_info_df
     
-    def get_podcast_episodes_by_id(self, showid, num_episodes = 10, market = 'US'): #type is built-in python operator
+    # get podcast episodes from a show
+    def get_podcast_episodes_by_id(self, showid, num_episodes = 10, market = 'US'):
         headers = self.get_resource_header()
         endpoint = f"https://api.spotify.com/v1/shows/{showid}/episodes?offset=0&limit={num_episodes}&market=US"
         #data = urlencode({'ids': showid, "market": market})
@@ -198,7 +232,11 @@ class SpotifyAPI(object):
         episode_df = episode_df.reset_index(drop=True)
         return episode_df
     
+ 
     
+    
+### Recurring API Calls for Database ###
+
 # instantiate spotifyAPI class object
 spotify = SpotifyAPI(client_id, client_secret)
     
@@ -208,37 +246,60 @@ The_Bill_Simmons_Podcast_id = '07SjDmKb9iliEzpNcN2xGD'
 Pardon_My_Take_id = '5ss1pqMFqWjkOpt6Ag0fZW'
 Against_All_Odds_with_Cousin_Sal_id = '7f6QwdOqt2T3DfDc7zdCYy'
 
-# create list of id's
-sports_pod_ids = [The_Ryen_Russillo_Podcast_id,
+Trail_Runner_Nation = '603z2wAQ73kcqTbM1pTl74'
+The_Running_Public = '2vUYerXBNhRDPcaINbYK8I'
+Another_Mother_Runner = '7HlsUrk4KVfMrX0dcqkT8e'
+The_Running_Pod = '2PacGg6zS1UZzOtS680MrR'
+Run_to_the_Top_Podcast = '4sIXIw0CbMW0on5zKXAet1'
+The_Strength_Running_Podcast = '1ZkJ0i0utCvF8NidUvfyYW'
+Running_Lean = '72KqZFtcRSoZFpPVTgJYvZ'
+RunBuzz_Running_Podcast = '43fRWm1WJwVZZ9kGnfIngU'
+Running_Things_Considered = '7L5aLeFO5zDMcinUfrm8oV'
+The_Runners_Zone = '4qMTmxMVJAKuUk5K7zZz55'
+Runners_of_NYC = '4DD2jtIBEcyVohfiimggvM'
+The_Runners_World_Show = '5LYUDIwTqW0vogUVpicWto'
+Not_Real_Runners = '3ysDuOiqvtPhRav34aMPwW'
+Coaching_Runners = '79ibGRJzwgqUyLdOT3IKvL'
+
+# create lists of id's
+sports_podcast_ids = [The_Ryen_Russillo_Podcast_id,
                   The_Bill_Simmons_Podcast_id,
                   Pardon_My_Take_id,
                   Against_All_Odds_with_Cousin_Sal_id]
 
-
-# get podcast info from each podcast id
-def sports_pod_info(list_of_ids):
-    # create empty podcast
-    sports_pod_info_df = pd.DataFrame(columns = ['name', 'publisher','total_episodes',
-                                                 'id','media_type', 'description',
-                                                 'external_urls', 'uri'])
+running_podcast_ids = [Trail_Runner_Nation,
+                       The_Running_Public,
+                       Another_Mother_Runner,
+                       The_Running_Pod,
+                       Run_to_the_Top_Podcast,
+                       The_Strength_Running_Podcast,
+                       Running_Lean,
+                       RunBuzz_Running_Podcast,
+                       Running_Things_Considered,
+                       The_Runners_Zone,
+                       Runners_of_NYC,
+                       The_Runners_World_Show,
+                       Not_Real_Runners,
+                       Coaching_Runners]
     
-    # grab podcast info from each id and append to dataframe
-    for i in list_of_ids:
-        temp_dict = spotify.get_podcast_info_by_id(i)
-        #print(temp_dict)
-        df = pd.DataFrame(temp_dict, columns = ['name', 'publisher',
-                                              'total_episodes', 'id',
-                                              'media_type', 'description',
-                                              'external_urls', 'uri'])
-        #print(df)
-        sports_pod_info_df = sports_pod_info_df.append(df)
+### Recurring API Call for Shows' Info ###
+def shows_info_spotifyAPI_call(podcast_ids_list):
+    multiple_podcasts_df = spotify.multiple_podcasts_info(podcast_ids_list)
+    
+    ### query to put data into database
+    
+    return multiple_podcasts_df
+
+### Recurring API Call for Episodes Info ###
+def episodes_info_spotifyAPI_call(podcast_ids_list):
+    
+    for i in podcast_ids_list:
+        episodes_df = spotify.get_podcast_episodes_by_id(i, num_episodes = 50,
+                                                         market = 'US')
         
-    sports_pod_info_df = sports_pod_info_df.reset_index(drop=True)
-    
-    return sports_pod_info_df
-    
-sports_podcast_info_df = sports_pod_info(sports_pod_ids)
+        ### query to put into database
+        print(episodes_df)
+        
+    return episodes_df
 
-
-
-
+#running_podcasts_test_df = shows_info_spotifyAPI_call(running_podcast_ids)
